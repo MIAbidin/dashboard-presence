@@ -1,6 +1,7 @@
 // src/api/users.api.ts
 // ─────────────────────────────────────────────────────────────
 // API calls untuk manajemen user (mahasiswa & dosen)
+// Fase 5: tambah total_mk_diampu untuk dosen
 // ─────────────────────────────────────────────────────────────
 
 import api from '@/api/axios'
@@ -8,16 +9,17 @@ import api from '@/api/axios'
 // ── Types ─────────────────────────────────────────────────────
 
 export interface AdminUser {
-  id               : string
-  nim_nidn         : string
-  nama_lengkap     : string
-  email            : string
-  role             : 'mahasiswa' | 'dosen' | 'admin'
-  program_studi    : string
+  id                : string
+  nim_nidn          : string
+  nama_lengkap      : string
+  email             : string
+  role              : 'mahasiswa' | 'dosen' | 'admin'
+  program_studi     : string
   is_face_registered: boolean
-  is_active        : boolean
-  total_foto_wajah : number
-  created_at       : string
+  is_active         : boolean
+  total_foto_wajah  : number
+  total_mk_diampu   : number   // ← BARU Fase 5 (jumlah MK unik yang pernah dibuat sesinya)
+  created_at        : string
 }
 
 export interface PaginatedUsers {
