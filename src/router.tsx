@@ -3,15 +3,16 @@ import { createBrowserRouter, Navigate, Outlet, useLocation } from 'react-router
 import { useAuthStore } from '@/stores/authStore'
 
 // ── Lazy-load semua halaman (code splitting otomatis) ─────────
-const LoginPage     = lazy(() => import('@/pages/Login'))
-const DashboardPage = lazy(() => import('@/pages/Dashboard'))
-const MahasiswaPage = lazy(() => import('@/pages/Mahasiswa'))
-const DosenPage     = lazy(() => import('@/pages/Dosen'))
-const MatakuliahPage= lazy(() => import('@/pages/Matakuliah'))
-const EnrollmentPage= lazy(() => import('@/pages/Enrollment'))
-const LaporanPage   = lazy(() => import('@/pages/Laporan'))
-const ImportPage    = lazy(() => import('@/pages/ImportData'))
-const ProfilPage    = lazy(() => import('@/pages/Profil'))
+const LoginPage           = lazy(() => import('@/pages/Login'))
+const DashboardPage       = lazy(() => import('@/pages/Dashboard'))
+const MahasiswaPage       = lazy(() => import('@/pages/Mahasiswa'))
+const DosenPage           = lazy(() => import('@/pages/Dosen'))
+const MatakuliahPage      = lazy(() => import('@/pages/Matakuliah'))
+const EnrollmentPage      = lazy(() => import('@/pages/Enrollment'))
+const LaporanPage         = lazy(() => import('@/pages/Laporan'))
+const JadwalPenggantiPage = lazy(() => import('@/pages/JadwalPengganti'))
+const ImportPage          = lazy(() => import('@/pages/ImportData'))
+const ProfilPage          = lazy(() => import('@/pages/Profil'))
 
 // ── Layout utama (Sidebar + Topbar) ──────────────────────────
 const AppLayout = lazy(() => import('@/components/Layout/AppLayout'))
@@ -135,6 +136,14 @@ export const router = createBrowserRouter([
             element: (
               <Suspense fallback={<PageLoader />}>
                 <LaporanPage />
+              </Suspense>
+            ),
+          },
+          { 
+            path: '/jadwal-pengganti', 
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <JadwalPenggantiPage />
               </Suspense>
             ),
           },

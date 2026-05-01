@@ -15,29 +15,31 @@ import {
 import { cn } from '@/lib/utils'
 import { useUIStore } from '@/stores/uiStore'
 import { useAuthStore } from '@/stores/authStore'
+import { Calendar } from 'lucide-react'
 
 // ── Definisi menu navigasi ────────────────────────────────────
 const NAV_ITEMS = [
   {
     group: 'Utama',
     items: [
-      { label: 'Dashboard',    path: '/dashboard',  icon: LayoutDashboard },
+      { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     ],
   },
   {
     group: 'Manajemen',
     items: [
-      { label: 'Mahasiswa',    path: '/mahasiswa',  icon: Users },
-      { label: 'Dosen',        path: '/dosen',      icon: GraduationCap },
-      { label: 'Matakuliah',   path: '/matakuliah', icon: BookOpen },
-      { label: 'Enrollment',   path: '/enrollment', icon: ClipboardList },
+      { label: 'Mahasiswa',        path: '/mahasiswa',        icon: Users },
+      { label: 'Dosen',            path: '/dosen',            icon: GraduationCap },
+      { label: 'Matakuliah',       path: '/matakuliah',       icon: BookOpen },
+      { label: 'Enrollment',       path: '/enrollment',       icon: ClipboardList },
+      { label: 'Jadwal Pengganti', path: '/jadwal-pengganti', icon: Calendar },  // ← BARU
     ],
   },
   {
     group: 'Laporan & Data',
     items: [
-      { label: 'Laporan',      path: '/laporan',    icon: BarChart3 },
-      { label: 'Import Data',  path: '/import',     icon: Upload },
+      { label: 'Laporan',     path: '/laporan', icon: BarChart3 },
+      { label: 'Import Data', path: '/import',  icon: Upload },
     ],
   },
 ]
