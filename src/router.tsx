@@ -13,6 +13,8 @@ const LaporanPage         = lazy(() => import('@/pages/Laporan'))
 const JadwalPenggantiPage = lazy(() => import('@/pages/JadwalPengganti'))
 const ImportPage          = lazy(() => import('@/pages/ImportData'))
 const ProfilPage          = lazy(() => import('@/pages/Profil'))
+const AuditPage           = lazy(() => import('@/pages/AuditLog'))
+const SchedulerPage       = lazy(() => import('@/pages/Scheduler'))
 
 // ── Layout utama (Sidebar + Topbar) ──────────────────────────
 const AppLayout = lazy(() => import('@/components/Layout/AppLayout'))
@@ -96,6 +98,22 @@ export const router = createBrowserRouter([
             element: (
               <Suspense fallback={<PageLoader />}>
                 <DashboardPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: '/audit',
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <AuditPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: '/scheduler',
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <SchedulerPage />
               </Suspense>
             ),
           },

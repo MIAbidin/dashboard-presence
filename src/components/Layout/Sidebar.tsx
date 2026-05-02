@@ -11,11 +11,13 @@ import {
   ChevronRight,
   ShieldCheck,
   LogOut,
+  Calendar,
+  FileText,
+  Activity,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useUIStore } from '@/stores/uiStore'
 import { useAuthStore } from '@/stores/authStore'
-import { Calendar } from 'lucide-react'
 
 // ── Definisi menu navigasi ────────────────────────────────────
 const NAV_ITEMS = [
@@ -32,7 +34,7 @@ const NAV_ITEMS = [
       { label: 'Dosen',            path: '/dosen',            icon: GraduationCap },
       { label: 'Matakuliah',       path: '/matakuliah',       icon: BookOpen },
       { label: 'Enrollment',       path: '/enrollment',       icon: ClipboardList },
-      { label: 'Jadwal Pengganti', path: '/jadwal-pengganti', icon: Calendar },  // ← BARU
+      { label: 'Jadwal Pengganti', path: '/jadwal-pengganti', icon: Calendar },
     ],
   },
   {
@@ -40,6 +42,13 @@ const NAV_ITEMS = [
     items: [
       { label: 'Laporan',     path: '/laporan', icon: BarChart3 },
       { label: 'Import Data', path: '/import',  icon: Upload },
+    ],
+  },
+  {
+    group: 'Sistem',
+    items: [
+      { label: 'Scheduler', path: '/scheduler', icon: Activity },
+      { label: 'Audit Log', path: '/audit',     icon: FileText },
     ],
   },
 ]
