@@ -8,13 +8,14 @@ import {
   Search, Plus, RefreshCw, Edit2, Trash2, MapPin,
   ChevronLeft, ChevronRight, X, Loader2, BookOpen,
   Clock, Navigation, Users, AlertTriangle, CheckCircle2,
-  Map, Info,
+  Map, Info, LayoutList,
 } from 'lucide-react'
 import {
   fetchMatakuliah, createMatakuliah, updateMatakuliah,
   deleteMatakuliah, toggleIzinTamu,
 } from '@/api/matakuliah.api'
 import type { AdminMatakuliah } from '@/api/matakuliah.api'
+import KelasSheet from '@/components/KelasSheet'
 import { cn } from '@/lib/utils'
 
 // ── Constants ─────────────────────────────────────────────────
@@ -131,37 +132,6 @@ function ToggleSwitch({
   )
 }
 
-// ── Tabs Component ────────────────────────────────────────────
-
-function Tabs({
-  tabs, active, onChange,
-}: {
-  tabs    : { id: string; label: string; icon: React.ReactNode }[]
-  active  : string
-  onChange: (id: string) => void
-}) {
-  return (
-    <div className="flex gap-1 p-1 bg-muted/50 rounded-lg">
-      {tabs.map((tab) => (
-        <button
-          key={tab.id}
-          type="button"
-          onClick={() => onChange(tab.id)}
-          className={cn(
-            'flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-md text-xs font-medium transition-all',
-            active === tab.id
-              ? 'bg-background text-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground'
-          )}
-        >
-          {tab.icon}
-          {tab.label}
-        </button>
-      ))}
-    </div>
-  )
-}
-
 // ── Modal: Form Matakuliah (Tambah / Edit) ────────────────────
 
 function ModalFormMatakuliah({
@@ -233,7 +203,6 @@ function ModalFormMatakuliah({
     { id: 'lokasi',  label: 'Lokasi GPS',  icon: <Map className="w-3.5 h-3.5" /> },
   ]
 
-  // Hitung error per tab untuk highlight
   const tabErrors = {
     info  : !!(errors.kode || errors.nama || errors.sks),
     jadwal: !!(errors.hari || errors.jam_mulai || errors.jam_selesai || errors.ruangan),
@@ -284,7 +253,6 @@ function ModalFormMatakuliah({
                 >
                   {tab.icon}
                   {tab.label}
-                  {/* Error dot */}
                   {tabErrors[tab.id as keyof typeof tabErrors] && (
                     <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-destructive" />
                   )}
@@ -390,7 +358,6 @@ function ModalFormMatakuliah({
                   />
                 </FormField>
 
-                {/* Preview jadwal */}
                 {watch('hari') && (
                   <div className="rounded-xl border border-border bg-muted/20 p-3 flex items-center gap-3">
                     <div className={cn(
@@ -443,10 +410,8 @@ function ModalFormMatakuliah({
                   </FormField>
                 </div>
 
-                {/* Maps Preview Link */}
                 {lat && lng && Number(lat) !== 0 && Number(lng) !== 0 ? (
                   <div className="rounded-xl border border-border overflow-hidden">
-                    {/* Static map preview via OpenStreetMap embed */}
                     <iframe
                       title="Maps Preview"
                       src={`https://www.openstreetmap.org/export/embed.html?bbox=${Number(lng) - 0.003},${Number(lat) - 0.003},${Number(lng) + 0.003},${Number(lat) + 0.003}&layer=mapnik&marker=${lat},${lng}`}
@@ -475,7 +440,6 @@ function ModalFormMatakuliah({
                   </div>
                 )}
 
-                {/* Quick fill dari Google Maps hint */}
                 <div className="rounded-lg border border-border bg-muted/20 p-3">
                   <p className="text-[11px] text-muted-foreground leading-relaxed">
                     <span className="font-semibold text-foreground">Tips:</span> Buka Google Maps → klik kanan pada lokasi gedung/ruangan → salin koordinat yang muncul.
@@ -584,7 +548,6 @@ function IzinTamuToggle({ matakuliah }: { matakuliah: AdminMatakuliah }) {
     mutationFn: (val: boolean) => toggleIzinTamu(matakuliah.id, val),
     onSuccess : (res, val) => {
       toast.success(res.message)
-      // Optimistic update di cache
       qc.setQueryData(['admin-matakuliah'], (old: unknown) => {
         if (!old || typeof old !== 'object') return old
         const data = old as { items: AdminMatakuliah[] }
@@ -619,7 +582,7 @@ function IzinTamuToggle({ matakuliah }: { matakuliah: AdminMatakuliah }) {
 function SkeletonRow() {
   return (
     <tr>
-      {[10, 16, 30, 8, 16, 20, 14, 14, 10, 8].map((w, i) => (
+      {[10, 16, 30, 8, 16, 20, 14, 14, 14, 10].map((w, i) => (
         <td key={i} className="px-4 py-3">
           <div
             className="h-4 rounded bg-muted animate-pulse"
@@ -640,9 +603,10 @@ type ModalState =
   | null
 
 export default function Matakuliah() {
-  const [modal, setModal]   = useState<ModalState>(null)
-  const [search, setSearch] = useState('')
-  const [page, setPage]     = useState(1)
+  const [modal, setModal]           = useState<ModalState>(null)
+  const [kelasSheetMk, setKelasSheetMk] = useState<AdminMatakuliah | null>(null)
+  const [search, setSearch]         = useState('')
+  const [page, setPage]             = useState(1)
   const [debouncedSearch, setDebouncedSearch] = useState('')
 
   const handleSearch = useCallback((val: string) => {
@@ -669,7 +633,7 @@ export default function Matakuliah() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Matakuliah</h1>
           <p className="text-muted-foreground text-sm mt-0.5">
-            Kelola matakuliah, jadwal, koordinat GPS, dan izin mahasiswa tamu.
+            Kelola matakuliah, kelas, jadwal, koordinat GPS, dan izin mahasiswa tamu.
           </p>
         </div>
         <button
@@ -885,6 +849,15 @@ export default function Matakuliah() {
                     {/* Aksi */}
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {/* ── Tombol Kelola Kelas (Fase B.4) ── */}
+                        <button
+                          onClick={() => setKelasSheetMk(mk)}
+                          title="Kelola Kelas"
+                          className="flex items-center gap-1 h-7 px-2 rounded-lg border border-border text-[11px] text-muted-foreground hover:text-primary hover:border-primary/30 hover:bg-primary/5 transition-colors"
+                        >
+                          <LayoutList className="w-3 h-3" />
+                          <span className="hidden sm:inline">Kelas</span>
+                        </button>
                         <button
                           onClick={() => setModal({ type: 'edit', mk })}
                           title="Edit"
@@ -960,6 +933,14 @@ export default function Matakuliah() {
       )}
       {modal?.type === 'hapus' && (
         <ModalHapus matakuliah={modal.mk} onClose={closeModal} />
+      )}
+
+      {/* ── KelasSheet (Fase B.4) ───────────────────────── */}
+      {kelasSheetMk && (
+        <KelasSheet
+          mk={kelasSheetMk}
+          onClose={() => setKelasSheetMk(null)}
+        />
       )}
     </div>
   )
