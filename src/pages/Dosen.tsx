@@ -8,7 +8,7 @@ import {
   Search, Plus, RefreshCw, Edit2, Trash2, KeyRound,
   Eye, EyeOff, ChevronLeft, ChevronRight,
   AlertTriangle, X, Loader2, GraduationCap,
-  BookOpen, CheckCircle2, XCircle,
+  BookOpen, CheckCircle2, XCircle, ChevronDown,
 } from 'lucide-react'
 import {
   fetchUsers, createUser, updateUser, deleteUser, resetPassword,
@@ -44,6 +44,17 @@ const resetPwSchema = z.object({
 type CreateForm  = z.infer<typeof createSchema>
 type EditForm    = z.infer<typeof editSchema>
 type ResetPwForm = z.infer<typeof resetPwSchema>
+
+// ── Types ─────────────────────────────────────────────────────
+
+interface KelasItem {
+  kelas_id   : string
+  kode_kelas : string
+  kode_mk    : string
+  nama_mk    : string
+  hari       : string | null
+  jam_range  : string | null
+}
 
 // ── Helper Components ─────────────────────────────────────────
 
@@ -89,6 +100,76 @@ function ModalOverlay({
       }}
     >
       {children}
+    </div>
+  )
+}
+
+// ── Komponen: Kelas Diampu Expandable ─────────────────────────
+// Ambil data kelas dari endpoint /admin/matakuliah?dosen_id atau
+// dari field kelas_list yang sudah ada di response user (jika backend support).
+// Sementara fallback ke total_mk_diampu jika API kelas per dosen belum ada.
+
+function KelasDiampuCell({ dosen }: { dosen: AdminUser }) {
+  const [expanded, setExpanded] = useState(false)
+
+  // Jika backend sudah mengembalikan kelas_list di response user
+  const kelasList: KelasItem[] = (dosen as AdminUser & { kelas_list?: KelasItem[] }).kelas_list ?? []
+  const hasDetail = kelasList.length > 0
+
+  // Tidak ada detail kelas → tampilkan total saja
+  if (!hasDetail) {
+    return dosen.total_mk_diampu > 0 ? (
+      <Badge variant="info">
+        <BookOpen className="w-2.5 h-2.5" />
+        {dosen.total_mk_diampu} MK
+      </Badge>
+    ) : (
+      <Badge variant="muted">
+        <BookOpen className="w-2.5 h-2.5" />
+        Belum ada
+      </Badge>
+    )
+  }
+
+  return (
+    <div>
+      <button
+        onClick={() => setExpanded(v => !v)}
+        className="flex items-center gap-1 text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:underline underline-offset-2"
+      >
+        <BookOpen className="w-2.5 h-2.5" />
+        {kelasList.length} Kelas
+        <ChevronDown className={cn('w-3 h-3 transition-transform', expanded && 'rotate-180')} />
+      </button>
+
+      {expanded && (
+        <div className="mt-1.5 space-y-1 min-w-[180px]">
+          {kelasList.map(k => (
+            <div
+              key={k.kelas_id}
+              className="flex items-start gap-1.5 px-2 py-1 rounded-md bg-muted/40 border border-border"
+            >
+              {/* Badge kode kelas */}
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary text-primary-foreground text-[9px] font-bold flex-shrink-0 mt-0.5">
+                {k.kode_kelas}
+              </span>
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold text-foreground leading-tight truncate max-w-[130px]">
+                  {k.kode_mk}
+                </p>
+                <p className="text-[9px] text-muted-foreground leading-tight truncate max-w-[130px]">
+                  {k.nama_mk}
+                </p>
+                {(k.hari || k.jam_range) && (
+                  <p className="text-[9px] text-muted-foreground/70 leading-tight">
+                    {k.hari}{k.hari && k.jam_range ? ' · ' : ''}{k.jam_range}
+                  </p>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -729,7 +810,6 @@ export default function Dosen() {
   const [page, setPage]     = useState(1)
   const [debouncedSearch, setDebouncedSearch] = useState('')
 
-  // Debounce search 400ms
   const handleSearch = useCallback((val: string) => {
     setSearch(val)
     clearTimeout(
@@ -825,8 +905,9 @@ export default function Dosen() {
                 <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden lg:table-cell">
                   Program Studi
                 </th>
+                {/* Kolom Kelas Diampu — Fase B */}
                 <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">
-                  MK Diampu
+                  Kelas Diampu
                 </th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">
                   Status
@@ -838,7 +919,6 @@ export default function Dosen() {
             </thead>
             <tbody className="divide-y divide-border">
               {isLoading ? (
-                // Skeleton loading
                 Array.from({ length: 8 }).map((_, i) => (
                   <tr key={i}>
                     {Array.from({ length: 8 }).map((_, j) => (
@@ -890,7 +970,6 @@ export default function Dosen() {
                     {/* Nama */}
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        {/* Avatar inisial */}
                         <div className="w-7 h-7 rounded-full bg-violet-600/10 border border-violet-600/20 flex items-center justify-center flex-shrink-0">
                           <span className="text-[11px] font-bold text-violet-600">
                             {dosen.nama_lengkap[0]?.toUpperCase()}
@@ -916,19 +995,9 @@ export default function Dosen() {
                       </p>
                     </td>
 
-                    {/* MK Diampu */}
+                    {/* Kelas Diampu — Fase B */}
                     <td className="px-4 py-3">
-                      {dosen.total_mk_diampu > 0 ? (
-                        <Badge variant="info">
-                          <BookOpen className="w-2.5 h-2.5" />
-                          {dosen.total_mk_diampu} MK
-                        </Badge>
-                      ) : (
-                        <Badge variant="muted">
-                          <BookOpen className="w-2.5 h-2.5" />
-                          Belum ada
-                        </Badge>
-                      )}
+                      <KelasDiampuCell dosen={dosen} />
                     </td>
 
                     {/* Status Akun */}
