@@ -15,6 +15,7 @@ const ImportPage          = lazy(() => import('@/pages/ImportData'))
 const ProfilPage          = lazy(() => import('@/pages/Profil'))
 const AuditPage           = lazy(() => import('@/pages/AuditLog'))
 const SchedulerPage       = lazy(() => import('@/pages/Scheduler'))
+const RuanganPage         = lazy(() => import('@/pages/Ruangan'))  // ← Fase A
 
 // ── Layout utama (Sidebar + Topbar) ──────────────────────────
 const AppLayout = lazy(() => import('@/components/Layout/AppLayout'))
@@ -38,7 +39,6 @@ function PrivateRoute() {
   const location = useLocation()
 
   if (!user || !accessToken) {
-    // Simpan URL yang dituju, agar setelah login bisa redirect balik
     return <Navigate to="/login" state={{ from: location }} replace />
   }
 
@@ -138,6 +138,14 @@ export const router = createBrowserRouter([
             element: (
               <Suspense fallback={<PageLoader />}>
                 <MatakuliahPage />
+              </Suspense>
+            ),
+          },
+          {
+            path: '/ruangan',  // ← Fase A
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <RuanganPage />
               </Suspense>
             ),
           },

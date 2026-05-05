@@ -7,14 +7,18 @@ import { useAuthStore } from '@/stores/authStore'
 
 // ── Map path → label untuk breadcrumb ────────────────────────
 const PAGE_LABELS: Record<string, string> = {
-  '/dashboard':  'Dashboard',
-  '/mahasiswa':  'Mahasiswa',
-  '/dosen':      'Dosen',
-  '/matakuliah': 'Matakuliah',
-  '/enrollment': 'Enrollment',
-  '/laporan':    'Laporan',
-  '/import':     'Import Data',
-  '/profil':     'Profil Saya',
+  '/dashboard':        'Dashboard',
+  '/mahasiswa':        'Mahasiswa',
+  '/dosen':            'Dosen',
+  '/matakuliah':       'Matakuliah',
+  '/ruangan':          'Ruangan Kuliah',  // ← Fase A
+  '/enrollment':       'Enrollment',
+  '/laporan':          'Laporan',
+  '/import':           'Import Data',
+  '/jadwal-pengganti': 'Jadwal Pengganti',
+  '/profil':           'Profil Saya',
+  '/scheduler':        'Scheduler',
+  '/audit':            'Audit Log',
 }
 
 export default function Topbar() {
@@ -45,8 +49,6 @@ export default function Topbar() {
       label: PAGE_LABELS[path] ?? seg.charAt(0).toUpperCase() + seg.slice(1),
     }
   })
-
-  const currentPage = PAGE_LABELS[location.pathname] ?? 'Halaman'
 
   return (
     <header className="h-14 flex-shrink-0 border-b border-border bg-card flex items-center px-4 gap-4">
@@ -90,7 +92,6 @@ export default function Topbar() {
           title="Notifikasi"
         >
           <Bell className="w-4 h-4" />
-          {/* Badge merah kecil */}
           <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-destructive" />
         </button>
 
@@ -124,7 +125,6 @@ export default function Topbar() {
               isDropdownOpen && 'bg-accent'
             )}
           >
-            {/* Avatar */}
             <div className="w-6 h-6 rounded-full bg-navy-800 flex items-center justify-center flex-shrink-0">
               <span className="text-white text-[10px] font-bold">
                 {user?.nama_lengkap?.[0]?.toUpperCase() ?? 'A'}
@@ -147,7 +147,6 @@ export default function Topbar() {
                 'overflow-hidden animate-in'
               )}
             >
-              {/* User info header */}
               <div className="px-3 py-3 border-b border-border">
                 <p className="text-xs font-semibold text-foreground truncate">
                   {user?.nama_lengkap ?? 'Admin'}
@@ -160,7 +159,6 @@ export default function Topbar() {
                 </span>
               </div>
 
-              {/* Menu items */}
               <div className="py-1">
                 <Link
                   to="/profil"

@@ -14,6 +14,7 @@ import {
   Calendar,
   FileText,
   Activity,
+  Building2,  // ← Fase A: ikon Ruangan
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useUIStore } from '@/stores/uiStore'
@@ -33,6 +34,7 @@ const NAV_ITEMS = [
       { label: 'Mahasiswa',        path: '/mahasiswa',        icon: Users },
       { label: 'Dosen',            path: '/dosen',            icon: GraduationCap },
       { label: 'Matakuliah',       path: '/matakuliah',       icon: BookOpen },
+      { label: 'Ruangan',          path: '/ruangan',          icon: Building2 },  // ← Fase A
       { label: 'Enrollment',       path: '/enrollment',       icon: ClipboardList },
       { label: 'Jadwal Pengganti', path: '/jadwal-pengganti', icon: Calendar },
     ],
