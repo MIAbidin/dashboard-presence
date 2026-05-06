@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import toast from 'react-hot-toast'
@@ -15,6 +15,7 @@ import {
   resetFace, resetPassword, faceDiagnose,
 } from '@/api/users.api'
 import type { AdminUser, FaceDiagnoseResult } from '@/api/users.api'
+import ProdiSelect from '@/components/ProdiSelect'
 import { cn } from '@/lib/utils'
 
 // ── Zod Schemas ───────────────────────────────────────────────
@@ -24,13 +25,13 @@ const createSchema = z.object({
   nama_lengkap  : z.string().min(3, 'Nama minimal 3 karakter'),
   email         : z.string().email('Format email tidak valid'),
   password      : z.string().min(6, 'Password minimal 6 karakter'),
-  program_studi : z.string().min(3, 'Program studi wajib diisi'),
+  program_studi : z.string().min(1, 'Program studi wajib dipilih'),
 })
 
 const editSchema = z.object({
   nama_lengkap  : z.string().min(3, 'Nama minimal 3 karakter'),
   email         : z.string().email('Format email tidak valid'),
-  program_studi : z.string().min(3, 'Program studi wajib diisi'),
+  program_studi : z.string().min(1, 'Program studi wajib dipilih'),
   is_active     : z.boolean(),
 })
 
@@ -79,8 +80,9 @@ function ModalTambah({ onClose }: { onClose: () => void }) {
   const qc = useQueryClient()
   const [showPw, setShowPw] = useState(false)
 
-  const { register, handleSubmit, formState: { errors } } = useForm<CreateForm>({
+  const { register, handleSubmit, control, formState: { errors } } = useForm<CreateForm>({
     resolver: zodResolver(createSchema),
+    defaultValues: { program_studi: '' },
   })
 
   const mutation = useMutation({
@@ -112,19 +114,27 @@ function ModalTambah({ onClose }: { onClose: () => void }) {
         </div>
 
         <form onSubmit={handleSubmit((d) => mutation.mutate(d))} className="p-5 space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-foreground">NIM</label>
-              <input {...register('nim_nidn')} placeholder="H071211099"
-                className={cn('w-full h-9 rounded-lg border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-all', errors.nim_nidn ? 'border-destructive' : 'border-border')} />
-              {errors.nim_nidn && <p className="text-[11px] text-destructive">{errors.nim_nidn.message}</p>}
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-foreground">Program Studi</label>
-              <input {...register('program_studi')} placeholder="Teknik Informatika"
-                className={cn('w-full h-9 rounded-lg border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-all', errors.program_studi ? 'border-destructive' : 'border-border')} />
-              {errors.program_studi && <p className="text-[11px] text-destructive">{errors.program_studi.message}</p>}
-            </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-foreground">NIM</label>
+            <input {...register('nim_nidn')} placeholder="H071211099"
+              className={cn('w-full h-9 rounded-lg border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-all', errors.nim_nidn ? 'border-destructive' : 'border-border')} />
+            {errors.nim_nidn && <p className="text-[11px] text-destructive">{errors.nim_nidn.message}</p>}
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-foreground">Program Studi</label>
+            <Controller
+              name="program_studi"
+              control={control}
+              render={({ field }) => (
+                <ProdiSelect
+                  value={field.value}
+                  onChange={field.onChange}
+                  error={errors.program_studi?.message}
+                  placeholder="Pilih Program Studi"
+                />
+              )}
+            />
           </div>
 
           <div className="space-y-1">
@@ -175,7 +185,7 @@ function ModalTambah({ onClose }: { onClose: () => void }) {
 
 function ModalEdit({ user, onClose }: { user: AdminUser; onClose: () => void }) {
   const qc = useQueryClient()
-  const { register, handleSubmit, formState: { errors } } = useForm<EditForm>({
+  const { register, handleSubmit, control, formState: { errors } } = useForm<EditForm>({
     resolver: zodResolver(editSchema),
     defaultValues: {
       nama_lengkap  : user.nama_lengkap,
@@ -223,18 +233,30 @@ function ModalEdit({ user, onClose }: { user: AdminUser; onClose: () => void }) 
               className={cn('w-full h-9 rounded-lg border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-all', errors.nama_lengkap ? 'border-destructive' : 'border-border')} />
             {errors.nama_lengkap && <p className="text-[11px] text-destructive">{errors.nama_lengkap.message}</p>}
           </div>
+
           <div className="space-y-1">
             <label className="text-xs font-medium text-foreground">Email</label>
             <input {...register('email')} type="email"
               className={cn('w-full h-9 rounded-lg border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-all', errors.email ? 'border-destructive' : 'border-border')} />
             {errors.email && <p className="text-[11px] text-destructive">{errors.email.message}</p>}
           </div>
+
           <div className="space-y-1">
             <label className="text-xs font-medium text-foreground">Program Studi</label>
-            <input {...register('program_studi')}
-              className={cn('w-full h-9 rounded-lg border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-all', errors.program_studi ? 'border-destructive' : 'border-border')} />
-            {errors.program_studi && <p className="text-[11px] text-destructive">{errors.program_studi.message}</p>}
+            <Controller
+              name="program_studi"
+              control={control}
+              render={({ field }) => (
+                <ProdiSelect
+                  value={field.value}
+                  onChange={field.onChange}
+                  error={errors.program_studi?.message}
+                  placeholder="Pilih Program Studi"
+                />
+              )}
+            />
           </div>
+
           <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5">
             <span className="text-sm text-foreground">Status Akun Aktif</span>
             <label className="relative inline-flex items-center cursor-pointer">
@@ -242,6 +264,7 @@ function ModalEdit({ user, onClose }: { user: AdminUser; onClose: () => void }) 
               <div className="w-9 h-5 bg-muted rounded-full peer peer-checked:bg-primary peer-checked:after:translate-x-4 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all" />
             </label>
           </div>
+
           <div className="flex gap-2 pt-1">
             <button type="button" onClick={onClose}
               className="flex-1 h-9 rounded-lg border border-border text-sm text-muted-foreground hover:bg-muted transition-colors">
@@ -489,7 +512,6 @@ function ModalFaceDiagnose({ user, onClose }: { user: AdminUser; onClose: () => 
                 </div>
               </div>
 
-              {/* Jika belum ada data */}
               {data.total_embeddings === 0 ? (
                 <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
                   <p className="text-sm text-amber-600 dark:text-amber-400 font-medium">
@@ -522,7 +544,6 @@ function ModalFaceDiagnose({ user, onClose }: { user: AdminUser; onClose: () => 
                     <p className="text-[11px] text-muted-foreground leading-relaxed">
                       {data.konsistensi_internal.keterangan}
                     </p>
-                    {/* Progress bar visual */}
                     <div className="space-y-1">
                       <div className="flex justify-between text-[10px] text-muted-foreground">
                         <span>0.0 (Identik)</span>
@@ -534,7 +555,6 @@ function ModalFaceDiagnose({ user, onClose }: { user: AdminUser; onClose: () => 
                           className="h-2 rounded-full bg-gradient-to-r from-green-500 via-amber-500 to-red-500"
                           style={{ width: `${Math.min(data.konsistensi_internal.rata_rata_jarak / 2 * 100, 100)}%` }}
                         />
-                        {/* Threshold marker */}
                         <div className="absolute top-0 h-2 w-0.5 bg-foreground/50" style={{ left: '45%' }} />
                       </div>
                     </div>

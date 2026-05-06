@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import toast from 'react-hot-toast'
@@ -14,6 +14,7 @@ import {
   fetchUsers, createUser, updateUser, deleteUser, resetPassword,
 } from '@/api/users.api'
 import type { AdminUser } from '@/api/users.api'
+import ProdiSelect from '@/components/ProdiSelect'
 import { cn } from '@/lib/utils'
 
 // ── Zod Schemas ───────────────────────────────────────────────
@@ -23,13 +24,13 @@ const createSchema = z.object({
   nama_lengkap  : z.string().min(3, 'Nama minimal 3 karakter'),
   email         : z.string().email('Format email tidak valid'),
   password      : z.string().min(6, 'Password minimal 6 karakter'),
-  program_studi : z.string().min(3, 'Program studi wajib diisi'),
+  program_studi : z.string().min(1, 'Program studi wajib dipilih'),
 })
 
 const editSchema = z.object({
   nama_lengkap  : z.string().min(3, 'Nama minimal 3 karakter'),
   email         : z.string().email('Format email tidak valid'),
-  program_studi : z.string().min(3, 'Program studi wajib diisi'),
+  program_studi : z.string().min(1, 'Program studi wajib dipilih'),
   is_active     : z.boolean(),
 })
 
@@ -74,30 +75,17 @@ function Badge({
   }[variant]
 
   return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold',
-        cls,
-      )}
-    >
+    <span className={cn('inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold', cls)}>
       {children}
     </span>
   )
 }
 
-function ModalOverlay({
-  children,
-  onClose,
-}: {
-  children: React.ReactNode
-  onClose : () => void
-}) {
+function ModalOverlay({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
-      onClick={e => {
-        if (e.target === e.currentTarget) onClose()
-      }}
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
       {children}
     </div>
@@ -105,18 +93,13 @@ function ModalOverlay({
 }
 
 // ── Komponen: Kelas Diampu Expandable ─────────────────────────
-// Ambil data kelas dari endpoint /admin/matakuliah?dosen_id atau
-// dari field kelas_list yang sudah ada di response user (jika backend support).
-// Sementara fallback ke total_mk_diampu jika API kelas per dosen belum ada.
 
 function KelasDiampuCell({ dosen }: { dosen: AdminUser }) {
   const [expanded, setExpanded] = useState(false)
 
-  // Jika backend sudah mengembalikan kelas_list di response user
   const kelasList: KelasItem[] = (dosen as AdminUser & { kelas_list?: KelasItem[] }).kelas_list ?? []
   const hasDetail = kelasList.length > 0
 
-  // Tidak ada detail kelas → tampilkan total saja
   if (!hasDetail) {
     return dosen.total_mk_diampu > 0 ? (
       <Badge variant="info">
@@ -145,21 +128,13 @@ function KelasDiampuCell({ dosen }: { dosen: AdminUser }) {
       {expanded && (
         <div className="mt-1.5 space-y-1 min-w-[180px]">
           {kelasList.map(k => (
-            <div
-              key={k.kelas_id}
-              className="flex items-start gap-1.5 px-2 py-1 rounded-md bg-muted/40 border border-border"
-            >
-              {/* Badge kode kelas */}
+            <div key={k.kelas_id} className="flex items-start gap-1.5 px-2 py-1 rounded-md bg-muted/40 border border-border">
               <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary text-primary-foreground text-[9px] font-bold flex-shrink-0 mt-0.5">
                 {k.kode_kelas}
               </span>
               <div className="min-w-0">
-                <p className="text-[10px] font-semibold text-foreground leading-tight truncate max-w-[130px]">
-                  {k.kode_mk}
-                </p>
-                <p className="text-[9px] text-muted-foreground leading-tight truncate max-w-[130px]">
-                  {k.nama_mk}
-                </p>
+                <p className="text-[10px] font-semibold text-foreground leading-tight truncate max-w-[130px]">{k.kode_mk}</p>
+                <p className="text-[9px] text-muted-foreground leading-tight truncate max-w-[130px]">{k.nama_mk}</p>
                 {(k.hari || k.jam_range) && (
                   <p className="text-[9px] text-muted-foreground/70 leading-tight">
                     {k.hari}{k.hari && k.jam_range ? ' · ' : ''}{k.jam_range}
@@ -180,11 +155,10 @@ function ModalTambah({ onClose }: { onClose: () => void }) {
   const qc = useQueryClient()
   const [showPw, setShowPw] = useState(false)
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<CreateForm>({ resolver: zodResolver(createSchema) })
+  const { register, handleSubmit, control, formState: { errors } } = useForm<CreateForm>({
+    resolver: zodResolver(createSchema),
+    defaultValues: { program_studi: '' },
+  })
 
   const mutation = useMutation({
     mutationFn: (data: CreateForm) => createUser({ ...data, role: 'dosen' }),
@@ -194,9 +168,7 @@ function ModalTambah({ onClose }: { onClose: () => void }) {
       onClose()
     },
     onError: (err: unknown) => {
-      const msg =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data
-          ?.detail ?? 'Gagal membuat akun'
+      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? 'Gagal membuat akun'
       toast.error(msg)
     },
   })
@@ -204,83 +176,53 @@ function ModalTambah({ onClose }: { onClose: () => void }) {
   return (
     <ModalOverlay onClose={onClose}>
       <div className="bg-card rounded-2xl border border-border shadow-xl w-full max-w-md">
-        {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-border">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center">
               <GraduationCap className="w-4 h-4 text-violet-500" />
             </div>
-            <h2 className="text-base font-semibold text-foreground">
-              Tambah Dosen
-            </h2>
+            <h2 className="text-base font-semibold text-foreground">Tambah Dosen</h2>
           </div>
-          <button
-            onClick={onClose}
-            className="text-muted-foreground hover:text-foreground transition-colors"
-          >
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Form */}
-        <form
-          onSubmit={handleSubmit(d => mutation.mutate(d))}
-          className="p-5 space-y-4"
-        >
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-foreground">NIDN</label>
-              <input
-                {...register('nim_nidn')}
-                placeholder="0012038901"
-                className={cn(
-                  'w-full h-9 rounded-lg border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-all',
-                  errors.nim_nidn ? 'border-destructive' : 'border-border',
-                )}
-              />
-              {errors.nim_nidn && (
-                <p className="text-[11px] text-destructive">
-                  {errors.nim_nidn.message}
-                </p>
-              )}
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-foreground">
-                Program Studi
-              </label>
-              <input
-                {...register('program_studi')}
-                placeholder="Teknik Informatika"
-                className={cn(
-                  'w-full h-9 rounded-lg border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-all',
-                  errors.program_studi ? 'border-destructive' : 'border-border',
-                )}
-              />
-              {errors.program_studi && (
-                <p className="text-[11px] text-destructive">
-                  {errors.program_studi.message}
-                </p>
-              )}
-            </div>
+        <form onSubmit={handleSubmit(d => mutation.mutate(d))} className="p-5 space-y-4">
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-foreground">NIDN</label>
+            <input
+              {...register('nim_nidn')}
+              placeholder="0012038901"
+              className={cn('w-full h-9 rounded-lg border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-all', errors.nim_nidn ? 'border-destructive' : 'border-border')}
+            />
+            {errors.nim_nidn && <p className="text-[11px] text-destructive">{errors.nim_nidn.message}</p>}
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-medium text-foreground">
-              Nama Lengkap (beserta gelar)
-            </label>
+            <label className="text-xs font-medium text-foreground">Program Studi</label>
+            <Controller
+              name="program_studi"
+              control={control}
+              render={({ field }) => (
+                <ProdiSelect
+                  value={field.value}
+                  onChange={field.onChange}
+                  error={errors.program_studi?.message}
+                  placeholder="Pilih Program Studi"
+                />
+              )}
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-foreground">Nama Lengkap (beserta gelar)</label>
             <input
               {...register('nama_lengkap')}
               placeholder="Dr. Ir. Budi Santoso, M.T."
-              className={cn(
-                'w-full h-9 rounded-lg border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-all',
-                errors.nama_lengkap ? 'border-destructive' : 'border-border',
-              )}
+              className={cn('w-full h-9 rounded-lg border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-all', errors.nama_lengkap ? 'border-destructive' : 'border-border')}
             />
-            {errors.nama_lengkap && (
-              <p className="text-[11px] text-destructive">
-                {errors.nama_lengkap.message}
-              </p>
-            )}
+            {errors.nama_lengkap && <p className="text-[11px] text-destructive">{errors.nama_lengkap.message}</p>}
           </div>
 
           <div className="space-y-1">
@@ -289,16 +231,9 @@ function ModalTambah({ onClose }: { onClose: () => void }) {
               {...register('email')}
               type="email"
               placeholder="dosen@universitashasanuddin.ac.id"
-              className={cn(
-                'w-full h-9 rounded-lg border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-all',
-                errors.email ? 'border-destructive' : 'border-border',
-              )}
+              className={cn('w-full h-9 rounded-lg border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-all', errors.email ? 'border-destructive' : 'border-border')}
             />
-            {errors.email && (
-              <p className="text-[11px] text-destructive">
-                {errors.email.message}
-              </p>
-            )}
+            {errors.email && <p className="text-[11px] text-destructive">{errors.email.message}</p>}
           </div>
 
           <div className="space-y-1">
@@ -308,46 +243,24 @@ function ModalTambah({ onClose }: { onClose: () => void }) {
                 {...register('password')}
                 type={showPw ? 'text' : 'password'}
                 placeholder="min. 6 karakter"
-                className={cn(
-                  'w-full h-9 rounded-lg border bg-background px-3 pr-9 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-all',
-                  errors.password ? 'border-destructive' : 'border-border',
-                )}
+                className={cn('w-full h-9 rounded-lg border bg-background px-3 pr-9 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-all', errors.password ? 'border-destructive' : 'border-border')}
               />
-              <button
-                type="button"
-                onClick={() => setShowPw(v => !v)}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
-                {showPw ? (
-                  <EyeOff className="w-3.5 h-3.5" />
-                ) : (
-                  <Eye className="w-3.5 h-3.5" />
-                )}
+              <button type="button" onClick={() => setShowPw(v => !v)}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                {showPw ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
               </button>
             </div>
-            {errors.password && (
-              <p className="text-[11px] text-destructive">
-                {errors.password.message}
-              </p>
-            )}
+            {errors.password && <p className="text-[11px] text-destructive">{errors.password.message}</p>}
           </div>
 
           <div className="flex gap-2 pt-1">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 h-9 rounded-lg border border-border text-sm text-muted-foreground hover:bg-muted transition-colors"
-            >
+            <button type="button" onClick={onClose}
+              className="flex-1 h-9 rounded-lg border border-border text-sm text-muted-foreground hover:bg-muted transition-colors">
               Batal
             </button>
-            <button
-              type="submit"
-              disabled={mutation.isPending}
-              className="flex-1 h-9 rounded-lg bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-1.5"
-            >
-              {mutation.isPending ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : null}
+            <button type="submit" disabled={mutation.isPending}
+              className="flex-1 h-9 rounded-lg bg-violet-600 text-white text-sm font-semibold hover:bg-violet-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-1.5">
+              {mutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
               Simpan
             </button>
           </div>
@@ -359,19 +272,9 @@ function ModalTambah({ onClose }: { onClose: () => void }) {
 
 // ── Modal: Edit Dosen ─────────────────────────────────────────
 
-function ModalEdit({
-  dosen,
-  onClose,
-}: {
-  dosen  : AdminUser
-  onClose: () => void
-}) {
+function ModalEdit({ dosen, onClose }: { dosen: AdminUser; onClose: () => void }) {
   const qc = useQueryClient()
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<EditForm>({
+  const { register, handleSubmit, control, formState: { errors } } = useForm<EditForm>({
     resolver     : zodResolver(editSchema),
     defaultValues: {
       nama_lengkap : dosen.nama_lengkap,
@@ -389,9 +292,7 @@ function ModalEdit({
       onClose()
     },
     onError: (err: unknown) => {
-      const msg =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data
-          ?.detail ?? 'Gagal update'
+      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? 'Gagal update'
       toast.error(msg)
     },
   })
@@ -405,40 +306,23 @@ function ModalEdit({
               <Edit2 className="w-4 h-4 text-amber-500" />
             </div>
             <div>
-              <h2 className="text-base font-semibold text-foreground">
-                Edit Dosen
-              </h2>
+              <h2 className="text-base font-semibold text-foreground">Edit Dosen</h2>
               <p className="text-[11px] text-muted-foreground">{dosen.nim_nidn}</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="text-muted-foreground hover:text-foreground transition-colors"
-          >
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <form
-          onSubmit={handleSubmit(d => mutation.mutate(d))}
-          className="p-5 space-y-4"
-        >
+        <form onSubmit={handleSubmit(d => mutation.mutate(d))} className="p-5 space-y-4">
           <div className="space-y-1">
-            <label className="text-xs font-medium text-foreground">
-              Nama Lengkap
-            </label>
+            <label className="text-xs font-medium text-foreground">Nama Lengkap</label>
             <input
               {...register('nama_lengkap')}
-              className={cn(
-                'w-full h-9 rounded-lg border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-all',
-                errors.nama_lengkap ? 'border-destructive' : 'border-border',
-              )}
+              className={cn('w-full h-9 rounded-lg border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-all', errors.nama_lengkap ? 'border-destructive' : 'border-border')}
             />
-            {errors.nama_lengkap && (
-              <p className="text-[11px] text-destructive">
-                {errors.nama_lengkap.message}
-              </p>
-            )}
+            {errors.nama_lengkap && <p className="text-[11px] text-destructive">{errors.nama_lengkap.message}</p>}
           </div>
 
           <div className="space-y-1">
@@ -446,65 +330,43 @@ function ModalEdit({
             <input
               {...register('email')}
               type="email"
-              className={cn(
-                'w-full h-9 rounded-lg border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-all',
-                errors.email ? 'border-destructive' : 'border-border',
-              )}
+              className={cn('w-full h-9 rounded-lg border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-all', errors.email ? 'border-destructive' : 'border-border')}
             />
-            {errors.email && (
-              <p className="text-[11px] text-destructive">
-                {errors.email.message}
-              </p>
-            )}
+            {errors.email && <p className="text-[11px] text-destructive">{errors.email.message}</p>}
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-medium text-foreground">
-              Program Studi
-            </label>
-            <input
-              {...register('program_studi')}
-              className={cn(
-                'w-full h-9 rounded-lg border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-all',
-                errors.program_studi ? 'border-destructive' : 'border-border',
+            <label className="text-xs font-medium text-foreground">Program Studi</label>
+            <Controller
+              name="program_studi"
+              control={control}
+              render={({ field }) => (
+                <ProdiSelect
+                  value={field.value}
+                  onChange={field.onChange}
+                  error={errors.program_studi?.message}
+                  placeholder="Pilih Program Studi"
+                />
               )}
             />
-            {errors.program_studi && (
-              <p className="text-[11px] text-destructive">
-                {errors.program_studi.message}
-              </p>
-            )}
           </div>
 
-          {/* Toggle is_active */}
           <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2.5">
             <span className="text-sm text-foreground">Status Akun Aktif</span>
             <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                className="sr-only peer"
-                {...register('is_active')}
-              />
+              <input type="checkbox" className="sr-only peer" {...register('is_active')} />
               <div className="w-9 h-5 bg-muted rounded-full peer peer-checked:bg-violet-600 peer-checked:after:translate-x-4 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all" />
             </label>
           </div>
 
           <div className="flex gap-2 pt-1">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 h-9 rounded-lg border border-border text-sm text-muted-foreground hover:bg-muted transition-colors"
-            >
+            <button type="button" onClick={onClose}
+              className="flex-1 h-9 rounded-lg border border-border text-sm text-muted-foreground hover:bg-muted transition-colors">
               Batal
             </button>
-            <button
-              type="submit"
-              disabled={mutation.isPending}
-              className="flex-1 h-9 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-60 flex items-center justify-center gap-1.5"
-            >
-              {mutation.isPending ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : null}
+            <button type="submit" disabled={mutation.isPending}
+              className="flex-1 h-9 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-60 flex items-center justify-center gap-1.5">
+              {mutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
               Simpan
             </button>
           </div>
@@ -516,34 +378,23 @@ function ModalEdit({
 
 // ── Modal: Reset Password ─────────────────────────────────────
 
-function ModalResetPassword({
-  dosen,
-  onClose,
-}: {
-  dosen  : AdminUser
-  onClose: () => void
-}) {
+function ModalResetPassword({ dosen, onClose }: { dosen: AdminUser; onClose: () => void }) {
   const qc = useQueryClient()
   const [showPw, setShowPw] = useState(false)
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<ResetPwForm>({ resolver: zodResolver(resetPwSchema) })
+  const { register, handleSubmit, formState: { errors } } = useForm<ResetPwForm>({
+    resolver: zodResolver(resetPwSchema),
+  })
 
   const mutation = useMutation({
-    mutationFn: (data: ResetPwForm) =>
-      resetPassword(dosen.id, data.password_baru),
+    mutationFn: (data: ResetPwForm) => resetPassword(dosen.id, data.password_baru),
     onSuccess: res => {
       toast.success(res.message)
       qc.invalidateQueries({ queryKey: ['admin-dosen'] })
       onClose()
     },
     onError: (err: unknown) => {
-      const msg =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data
-          ?.detail ?? 'Gagal reset password'
+      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? 'Gagal reset password'
       toast.error(msg)
     },
   })
@@ -557,97 +408,52 @@ function ModalResetPassword({
               <KeyRound className="w-4 h-4 text-blue-500" />
             </div>
             <div>
-              <h2 className="text-base font-semibold text-foreground">
-                Reset Password
-              </h2>
-              <p className="text-[11px] text-muted-foreground">
-                {dosen.nama_lengkap}
-              </p>
+              <h2 className="text-base font-semibold text-foreground">Reset Password</h2>
+              <p className="text-[11px] text-muted-foreground">{dosen.nama_lengkap}</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="text-muted-foreground hover:text-foreground"
-          >
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <form
-          onSubmit={handleSubmit(d => mutation.mutate(d))}
-          className="p-5 space-y-4"
-        >
+        <form onSubmit={handleSubmit(d => mutation.mutate(d))} className="p-5 space-y-4">
           <div className="space-y-1">
-            <label className="text-xs font-medium text-foreground">
-              Password Baru
-            </label>
+            <label className="text-xs font-medium text-foreground">Password Baru</label>
             <div className="relative">
               <input
                 {...register('password_baru')}
                 type={showPw ? 'text' : 'password'}
                 placeholder="min. 6 karakter"
-                className={cn(
-                  'w-full h-9 rounded-lg border bg-background px-3 pr-9 text-sm outline-none focus:ring-2 focus:ring-ring/50',
-                  errors.password_baru ? 'border-destructive' : 'border-border',
-                )}
+                className={cn('w-full h-9 rounded-lg border bg-background px-3 pr-9 text-sm outline-none focus:ring-2 focus:ring-ring/50', errors.password_baru ? 'border-destructive' : 'border-border')}
               />
-              <button
-                type="button"
-                onClick={() => setShowPw(v => !v)}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
-                {showPw ? (
-                  <EyeOff className="w-3.5 h-3.5" />
-                ) : (
-                  <Eye className="w-3.5 h-3.5" />
-                )}
+              <button type="button" onClick={() => setShowPw(v => !v)}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                {showPw ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
               </button>
             </div>
-            {errors.password_baru && (
-              <p className="text-[11px] text-destructive">
-                {errors.password_baru.message}
-              </p>
-            )}
+            {errors.password_baru && <p className="text-[11px] text-destructive">{errors.password_baru.message}</p>}
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-medium text-foreground">
-              Konfirmasi Password
-            </label>
+            <label className="text-xs font-medium text-foreground">Konfirmasi Password</label>
             <input
               {...register('konfirmasi_password')}
               type={showPw ? 'text' : 'password'}
               placeholder="Ulangi password"
-              className={cn(
-                'w-full h-9 rounded-lg border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring/50',
-                errors.konfirmasi_password
-                  ? 'border-destructive'
-                  : 'border-border',
-              )}
+              className={cn('w-full h-9 rounded-lg border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring/50', errors.konfirmasi_password ? 'border-destructive' : 'border-border')}
             />
-            {errors.konfirmasi_password && (
-              <p className="text-[11px] text-destructive">
-                {errors.konfirmasi_password.message}
-              </p>
-            )}
+            {errors.konfirmasi_password && <p className="text-[11px] text-destructive">{errors.konfirmasi_password.message}</p>}
           </div>
 
           <div className="flex gap-2 pt-1">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 h-9 rounded-lg border border-border text-sm text-muted-foreground hover:bg-muted transition-colors"
-            >
+            <button type="button" onClick={onClose}
+              className="flex-1 h-9 rounded-lg border border-border text-sm text-muted-foreground hover:bg-muted transition-colors">
               Batal
             </button>
-            <button
-              type="submit"
-              disabled={mutation.isPending}
-              className="flex-1 h-9 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-1.5"
-            >
-              {mutation.isPending ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : null}
+            <button type="submit" disabled={mutation.isPending}
+              className="flex-1 h-9 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-1.5">
+              {mutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
               Reset Password
             </button>
           </div>
@@ -659,13 +465,7 @@ function ModalResetPassword({
 
 // ── Modal: Konfirmasi Nonaktifkan ─────────────────────────────
 
-function ModalNonaktifkan({
-  dosen,
-  onClose,
-}: {
-  dosen  : AdminUser
-  onClose: () => void
-}) {
+function ModalNonaktifkan({ dosen, onClose }: { dosen: AdminUser; onClose: () => void }) {
   const qc = useQueryClient()
 
   const mutation = useMutation({
@@ -685,30 +485,20 @@ function ModalNonaktifkan({
           <div className="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto">
             <AlertTriangle className="w-6 h-6 text-amber-500" />
           </div>
-          <h2 className="text-base font-semibold text-foreground">
-            Nonaktifkan Akun?
-          </h2>
+          <h2 className="text-base font-semibold text-foreground">Nonaktifkan Akun?</h2>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Akun{' '}
-            <strong className="text-foreground">{dosen.nama_lengkap}</strong>{' '}
-            akan dinonaktifkan. Data dan riwayat sesi tetap tersimpan.
+            Akun <strong className="text-foreground">{dosen.nama_lengkap}</strong> akan dinonaktifkan.
+            Data dan riwayat sesi tetap tersimpan.
           </p>
         </div>
         <div className="flex gap-2">
-          <button
-            onClick={onClose}
-            className="flex-1 h-9 rounded-lg border border-border text-sm text-muted-foreground hover:bg-muted transition-colors"
-          >
+          <button onClick={onClose}
+            className="flex-1 h-9 rounded-lg border border-border text-sm text-muted-foreground hover:bg-muted transition-colors">
             Batal
           </button>
-          <button
-            onClick={() => mutation.mutate()}
-            disabled={mutation.isPending}
-            className="flex-1 h-9 rounded-lg bg-amber-600 text-white text-sm font-semibold hover:bg-amber-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-1.5"
-          >
-            {mutation.isPending ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : null}
+          <button onClick={() => mutation.mutate()} disabled={mutation.isPending}
+            className="flex-1 h-9 rounded-lg bg-amber-600 text-white text-sm font-semibold hover:bg-amber-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-1.5">
+            {mutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
             Nonaktifkan
           </button>
         </div>
@@ -720,10 +510,7 @@ function ModalNonaktifkan({
 // ── Dropdown Aksi per Baris ───────────────────────────────────
 
 function AksiDropdown({
-  dosen,
-  onEdit,
-  onResetPassword,
-  onNonaktifkan,
+  dosen, onEdit, onResetPassword, onNonaktifkan,
 }: {
   dosen          : AdminUser
   onEdit         : () => void
@@ -733,27 +520,9 @@ function AksiDropdown({
   const [open, setOpen] = useState(false)
 
   const items = [
-    {
-      label   : 'Edit Data',
-      icon    : <Edit2 className="w-3.5 h-3.5" />,
-      onClick : onEdit,
-      color   : '',
-      disabled: false,
-    },
-    {
-      label   : 'Reset Password',
-      icon    : <KeyRound className="w-3.5 h-3.5" />,
-      onClick : onResetPassword,
-      color   : 'text-blue-500',
-      disabled: false,
-    },
-    {
-      label   : dosen.is_active ? 'Nonaktifkan' : 'Sudah Nonaktif',
-      icon    : <Trash2 className="w-3.5 h-3.5" />,
-      onClick : onNonaktifkan,
-      color   : 'text-amber-500',
-      disabled: !dosen.is_active,
-    },
+    { label: 'Edit Data',      icon: <Edit2 className="w-3.5 h-3.5" />,   onClick: onEdit,          color: '',              disabled: false },
+    { label: 'Reset Password', icon: <KeyRound className="w-3.5 h-3.5" />, onClick: onResetPassword, color: 'text-blue-500',  disabled: false },
+    { label: dosen.is_active ? 'Nonaktifkan' : 'Sudah Nonaktif', icon: <Trash2 className="w-3.5 h-3.5" />, onClick: onNonaktifkan, color: 'text-amber-500', disabled: !dosen.is_active },
   ]
 
   return (
@@ -766,23 +535,14 @@ function AksiDropdown({
       </button>
       {open && (
         <>
-          <div
-            className="fixed inset-0 z-10"
-            onClick={() => setOpen(false)}
-          />
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
           <div className="absolute right-0 top-full mt-1 z-20 w-44 rounded-xl border border-border bg-popover shadow-lg overflow-hidden">
             {items.map(item => (
               <button
                 key={item.label}
                 disabled={item.disabled}
-                onClick={() => {
-                  setOpen(false)
-                  item.onClick()
-                }}
-                className={cn(
-                  'w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed',
-                  item.color || 'text-foreground',
-                )}
+                onClick={() => { setOpen(false); item.onClick() }}
+                className={cn('w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed', item.color || 'text-foreground')}
               >
                 {item.icon}
                 {item.label}
@@ -812,12 +572,8 @@ export default function Dosen() {
 
   const handleSearch = useCallback((val: string) => {
     setSearch(val)
-    clearTimeout(
-      (handleSearch as unknown as { _t?: ReturnType<typeof setTimeout> })._t,
-    )
-    ;(
-      handleSearch as unknown as { _t?: ReturnType<typeof setTimeout> }
-    )._t = setTimeout(() => {
+    clearTimeout((handleSearch as unknown as { _t?: ReturnType<typeof setTimeout> })._t)
+    ;(handleSearch as unknown as { _t?: ReturnType<typeof setTimeout> })._t = setTimeout(() => {
       setDebouncedSearch(val)
       setPage(1)
     }, 400)
@@ -825,13 +581,7 @@ export default function Dosen() {
 
   const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: ['admin-dosen', debouncedSearch, page],
-    queryFn : () =>
-      fetchUsers({
-        role  : 'dosen',
-        search: debouncedSearch || undefined,
-        page,
-        limit : 20,
-      }),
+    queryFn : () => fetchUsers({ role: 'dosen', search: debouncedSearch || undefined, page, limit: 20 }),
     staleTime: 30_000,
   })
 
@@ -872,9 +622,7 @@ export default function Dosen() {
           disabled={isFetching}
           className="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-border text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-60"
         >
-          <RefreshCw
-            className={cn('w-3.5 h-3.5', isFetching && 'animate-spin')}
-          />
+          <RefreshCw className={cn('w-3.5 h-3.5', isFetching && 'animate-spin')} />
           Refresh
         </button>
         {data && (
@@ -890,31 +638,14 @@ export default function Dosen() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/30">
-                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground w-10">
-                  No
-                </th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">
-                  NIDN
-                </th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">
-                  Nama
-                </th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden md:table-cell">
-                  Email
-                </th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden lg:table-cell">
-                  Program Studi
-                </th>
-                {/* Kolom Kelas Diampu — Fase B */}
-                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">
-                  Kelas Diampu
-                </th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">
-                  Status
-                </th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground">
-                  Aksi
-                </th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground w-10">No</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">NIDN</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Nama</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden md:table-cell">Email</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden lg:table-cell">Program Studi</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Kelas Diampu</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Status</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-muted-foreground">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -923,111 +654,58 @@ export default function Dosen() {
                   <tr key={i}>
                     {Array.from({ length: 8 }).map((_, j) => (
                       <td key={j} className="px-4 py-3">
-                        <div
-                          className="h-4 rounded bg-muted animate-pulse"
-                          style={{
-                            width:
-                              j === 2
-                                ? '160px'
-                                : j === 0
-                                  ? '20px'
-                                  : '80px',
-                          }}
-                        />
+                        <div className="h-4 rounded bg-muted animate-pulse" style={{ width: j === 2 ? '160px' : j === 0 ? '20px' : '80px' }} />
                       </td>
                     ))}
                   </tr>
                 ))
               ) : data?.items.length === 0 ? (
                 <tr>
-                  <td
-                    colSpan={8}
-                    className="px-4 py-12 text-center text-sm text-muted-foreground"
-                  >
-                    {debouncedSearch
-                      ? `Tidak ada dosen yang cocok dengan "${debouncedSearch}"`
-                      : 'Belum ada data dosen'}
+                  <td colSpan={8} className="px-4 py-12 text-center text-sm text-muted-foreground">
+                    {debouncedSearch ? `Tidak ada dosen yang cocok dengan "${debouncedSearch}"` : 'Belum ada data dosen'}
                   </td>
                 </tr>
               ) : (
                 data?.items.map((dosen, idx) => (
-                  <tr
-                    key={dosen.id}
-                    className="hover:bg-muted/30 transition-colors"
-                  >
-                    {/* No */}
-                    <td className="px-4 py-3 text-xs text-muted-foreground">
-                      {(page - 1) * 20 + idx + 1}
-                    </td>
-
-                    {/* NIDN */}
+                  <tr key={dosen.id} className="hover:bg-muted/30 transition-colors">
+                    <td className="px-4 py-3 text-xs text-muted-foreground">{(page - 1) * 20 + idx + 1}</td>
                     <td className="px-4 py-3">
-                      <span className="text-xs font-mono font-medium text-foreground">
-                        {dosen.nim_nidn}
-                      </span>
+                      <span className="text-xs font-mono font-medium text-foreground">{dosen.nim_nidn}</span>
                     </td>
-
-                    {/* Nama */}
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <div className="w-7 h-7 rounded-full bg-violet-600/10 border border-violet-600/20 flex items-center justify-center flex-shrink-0">
-                          <span className="text-[11px] font-bold text-violet-600">
-                            {dosen.nama_lengkap[0]?.toUpperCase()}
-                          </span>
+                          <span className="text-[11px] font-bold text-violet-600">{dosen.nama_lengkap[0]?.toUpperCase()}</span>
                         </div>
-                        <p className="text-sm font-medium text-foreground leading-tight">
-                          {dosen.nama_lengkap}
-                        </p>
+                        <p className="text-sm font-medium text-foreground leading-tight">{dosen.nama_lengkap}</p>
                       </div>
                     </td>
-
-                    {/* Email */}
                     <td className="px-4 py-3 hidden md:table-cell">
-                      <p className="text-xs text-muted-foreground">
-                        {dosen.email}
-                      </p>
+                      <p className="text-xs text-muted-foreground">{dosen.email}</p>
                     </td>
-
-                    {/* Program Studi */}
                     <td className="px-4 py-3 hidden lg:table-cell">
-                      <p className="text-xs text-muted-foreground">
-                        {dosen.program_studi}
-                      </p>
+                      <p className="text-xs text-muted-foreground">{dosen.program_studi}</p>
                     </td>
-
-                    {/* Kelas Diampu — Fase B */}
                     <td className="px-4 py-3">
                       <KelasDiampuCell dosen={dosen} />
                     </td>
-
-                    {/* Status Akun */}
                     <td className="px-4 py-3">
                       {dosen.is_active ? (
                         <Badge variant="success">
-                          <CheckCircle2 className="w-2.5 h-2.5" />
-                          Aktif
+                          <CheckCircle2 className="w-2.5 h-2.5" /> Aktif
                         </Badge>
                       ) : (
                         <Badge variant="muted">
-                          <XCircle className="w-2.5 h-2.5" />
-                          Nonaktif
+                          <XCircle className="w-2.5 h-2.5" /> Nonaktif
                         </Badge>
                       )}
                     </td>
-
-                    {/* Aksi */}
                     <td className="px-4 py-3 text-right">
                       <AksiDropdown
                         dosen={dosen}
-                        onEdit={() =>
-                          setModal({ type: 'edit', dosen })
-                        }
-                        onResetPassword={() =>
-                          setModal({ type: 'reset-password', dosen })
-                        }
-                        onNonaktifkan={() =>
-                          setModal({ type: 'nonaktifkan', dosen })
-                        }
+                        onEdit         ={() => setModal({ type: 'edit', dosen })}
+                        onResetPassword={() => setModal({ type: 'reset-password', dosen })}
+                        onNonaktifkan  ={() => setModal({ type: 'nonaktifkan', dosen })}
                       />
                     </td>
                   </tr>
@@ -1037,12 +715,10 @@ export default function Dosen() {
           </table>
         </div>
 
-        {/* ── Pagination ─────────────────────────────────── */}
+        {/* Pagination */}
         {data && data.total_pages > 1 && (
           <div className="flex items-center justify-between px-4 py-3 border-t border-border">
-            <p className="text-xs text-muted-foreground">
-              Halaman {page} dari {data.total_pages}
-            </p>
+            <p className="text-xs text-muted-foreground">Halaman {page} dari {data.total_pages}</p>
             <div className="flex items-center gap-1.5">
               <button
                 disabled={page <= 1}
@@ -1051,25 +727,16 @@ export default function Dosen() {
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
               </button>
-              {Array.from({ length: Math.min(data.total_pages, 5) }).map(
-                (_, i) => {
-                  const p = i + 1
-                  return (
-                    <button
-                      key={p}
-                      onClick={() => setPage(p)}
-                      className={cn(
-                        'w-7 h-7 rounded-lg text-xs font-medium transition-colors',
-                        page === p
-                          ? 'bg-violet-600 text-white'
-                          : 'border border-border text-muted-foreground hover:bg-muted',
-                      )}
-                    >
-                      {p}
-                    </button>
-                  )
-                },
-              )}
+              {Array.from({ length: Math.min(data.total_pages, 5) }).map((_, i) => {
+                const p = i + 1
+                return (
+                  <button key={p} onClick={() => setPage(p)}
+                    className={cn('w-7 h-7 rounded-lg text-xs font-medium transition-colors',
+                      page === p ? 'bg-violet-600 text-white' : 'border border-border text-muted-foreground hover:bg-muted'
+                    )}
+                  >{p}</button>
+                )
+              })}
               <button
                 disabled={page >= data.total_pages}
                 onClick={() => setPage(p => p + 1)}
@@ -1083,18 +750,10 @@ export default function Dosen() {
       </div>
 
       {/* ── Modals ─────────────────────────────────────── */}
-      {modal?.type === 'tambah' && (
-        <ModalTambah onClose={closeModal} />
-      )}
-      {modal?.type === 'edit' && (
-        <ModalEdit dosen={modal.dosen} onClose={closeModal} />
-      )}
-      {modal?.type === 'reset-password' && (
-        <ModalResetPassword dosen={modal.dosen} onClose={closeModal} />
-      )}
-      {modal?.type === 'nonaktifkan' && (
-        <ModalNonaktifkan dosen={modal.dosen} onClose={closeModal} />
-      )}
+      {modal?.type === 'tambah'         && <ModalTambah          onClose={closeModal} />}
+      {modal?.type === 'edit'           && <ModalEdit            dosen={modal.dosen} onClose={closeModal} />}
+      {modal?.type === 'reset-password' && <ModalResetPassword   dosen={modal.dosen} onClose={closeModal} />}
+      {modal?.type === 'nonaktifkan'    && <ModalNonaktifkan     dosen={modal.dosen} onClose={closeModal} />}
     </div>
   )
 }
