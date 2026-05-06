@@ -1,3 +1,6 @@
+// src/components/Layout/Topbar.tsx
+// Update Fase D: tambah label '/program-studi' di PAGE_LABELS
+
 import { useLocation, Link } from 'react-router-dom'
 import { Moon, Sun, Bell, ChevronRight, User, LogOut, Settings } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
@@ -11,7 +14,8 @@ const PAGE_LABELS: Record<string, string> = {
   '/mahasiswa':        'Mahasiswa',
   '/dosen':            'Dosen',
   '/matakuliah':       'Matakuliah',
-  '/ruangan':          'Ruangan Kuliah',  // ← Fase A
+  '/ruangan':          'Ruangan Kuliah',
+  '/program-studi':    'Program Studi',       // ← Fase D
   '/enrollment':       'Enrollment',
   '/laporan':          'Laporan',
   '/import':           'Import Data',
@@ -29,7 +33,6 @@ export default function Topbar() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
-  // Tutup dropdown saat klik di luar
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -40,7 +43,6 @@ export default function Topbar() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // ── Build breadcrumb dari pathname ────────────────────────
   const segments = location.pathname.split('/').filter(Boolean)
   const breadcrumbs = segments.map((seg, i) => {
     const path = '/' + segments.slice(0, i + 1).join('/')
@@ -82,12 +84,10 @@ export default function Topbar() {
 
       {/* ── Right actions ────────────────────────────────────── */}
       <div className="flex items-center gap-1.5 shrink-0">
-        {/* Notifikasi (placeholder) */}
         <button
           className={cn(
             'relative w-8 h-8 rounded-lg flex items-center justify-center',
-            'text-muted-foreground hover:text-foreground hover:bg-accent',
-            'transition-colors'
+            'text-muted-foreground hover:text-foreground hover:bg-accent transition-colors'
           )}
           title="Notifikasi"
         >
@@ -95,27 +95,19 @@ export default function Topbar() {
           <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-destructive" />
         </button>
 
-        {/* Dark mode toggle */}
         <button
           onClick={toggleDarkMode}
           className={cn(
             'w-8 h-8 rounded-lg flex items-center justify-center',
-            'text-muted-foreground hover:text-foreground hover:bg-accent',
-            'transition-colors'
+            'text-muted-foreground hover:text-foreground hover:bg-accent transition-colors'
           )}
           title={isDarkMode ? 'Light mode' : 'Dark mode'}
         >
-          {isDarkMode ? (
-            <Sun className="w-4 h-4" />
-          ) : (
-            <Moon className="w-4 h-4" />
-          )}
+          {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
         </button>
 
-        {/* Divider */}
         <div className="w-px h-5 bg-border mx-1" />
 
-        {/* User dropdown */}
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setIsDropdownOpen((v) => !v)}
@@ -138,7 +130,6 @@ export default function Topbar() {
             </div>
           </button>
 
-          {/* Dropdown menu */}
           {isDropdownOpen && (
             <div
               className={cn(
@@ -163,10 +154,7 @@ export default function Topbar() {
                 <Link
                   to="/profil"
                   onClick={() => setIsDropdownOpen(false)}
-                  className={cn(
-                    'flex items-center gap-2.5 px-3 py-2',
-                    'text-sm text-foreground hover:bg-accent transition-colors'
-                  )}
+                  className={cn('flex items-center gap-2.5 px-3 py-2 text-sm text-foreground hover:bg-accent transition-colors')}
                 >
                   <User className="w-3.5 h-3.5 text-muted-foreground" />
                   Profil Saya
@@ -174,10 +162,7 @@ export default function Topbar() {
                 <Link
                   to="/profil"
                   onClick={() => setIsDropdownOpen(false)}
-                  className={cn(
-                    'flex items-center gap-2.5 px-3 py-2',
-                    'text-sm text-foreground hover:bg-accent transition-colors'
-                  )}
+                  className={cn('flex items-center gap-2.5 px-3 py-2 text-sm text-foreground hover:bg-accent transition-colors')}
                 >
                   <Settings className="w-3.5 h-3.5 text-muted-foreground" />
                   Pengaturan
@@ -186,14 +171,8 @@ export default function Topbar() {
 
               <div className="border-t border-border py-1">
                 <button
-                  onClick={() => {
-                    setIsDropdownOpen(false)
-                    logout()
-                  }}
-                  className={cn(
-                    'w-full flex items-center gap-2.5 px-3 py-2',
-                    'text-sm text-destructive hover:bg-destructive/10 transition-colors'
-                  )}
+                  onClick={() => { setIsDropdownOpen(false); logout() }}
+                  className={cn('w-full flex items-center gap-2.5 px-3 py-2 text-sm text-destructive hover:bg-destructive/10 transition-colors')}
                 >
                   <LogOut className="w-3.5 h-3.5" />
                   Keluar

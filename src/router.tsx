@@ -16,6 +16,7 @@ const ProfilPage          = lazy(() => import('@/pages/Profil'))
 const AuditPage           = lazy(() => import('@/pages/AuditLog'))
 const SchedulerPage       = lazy(() => import('@/pages/Scheduler'))
 const RuanganPage         = lazy(() => import('@/pages/Ruangan'))  // ← Fase A
+const ProgramStudiPage = lazy(() => import('@/pages/ProgramStudi'))
 
 // ── Layout utama (Sidebar + Topbar) ──────────────────────────
 const AppLayout = lazy(() => import('@/components/Layout/AppLayout'))
@@ -148,6 +149,13 @@ export const router = createBrowserRouter([
                 <RuanganPage />
               </Suspense>
             ),
+          },
+          { path: '/program-studi',
+            element: (
+              <Suspense fallback={<PageLoader />}>
+                <ProgramStudiPage />
+              </Suspense>
+            ), 
           },
           {
             path: '/enrollment',

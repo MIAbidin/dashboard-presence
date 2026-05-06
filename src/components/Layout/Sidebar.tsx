@@ -1,3 +1,6 @@
+// src/components/Layout/Sidebar.tsx
+// Update Fase D: tambah menu Program Studi di group Manajemen (setelah Ruangan)
+
 import { NavLink, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard,
@@ -14,7 +17,8 @@ import {
   Calendar,
   FileText,
   Activity,
-  Building2,  // ← Fase A: ikon Ruangan
+  Building2,   // Ruangan
+  Library,     // Program Studi  ← Fase D
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useUIStore } from '@/stores/uiStore'
@@ -34,7 +38,8 @@ const NAV_ITEMS = [
       { label: 'Mahasiswa',        path: '/mahasiswa',        icon: Users },
       { label: 'Dosen',            path: '/dosen',            icon: GraduationCap },
       { label: 'Matakuliah',       path: '/matakuliah',       icon: BookOpen },
-      { label: 'Ruangan',          path: '/ruangan',          icon: Building2 },  // ← Fase A
+      { label: 'Ruangan',          path: '/ruangan',          icon: Building2 },
+      { label: 'Program Studi',    path: '/program-studi',    icon: Library },     // ← Fase D
       { label: 'Enrollment',       path: '/enrollment',       icon: ClipboardList },
       { label: 'Jadwal Pengganti', path: '/jadwal-pengganti', icon: Calendar },
     ],
@@ -93,7 +98,6 @@ export default function Sidebar() {
       <nav className="flex-1 overflow-y-auto overflow-x-hidden py-3 px-2 space-y-4">
         {NAV_ITEMS.map((group) => (
           <div key={group.group}>
-            {/* Group label — sembunyikan saat collapsed */}
             {!isSidebarCollapsed && (
               <p className="px-2 mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60 select-none">
                 {group.group}
@@ -129,7 +133,6 @@ export default function Sidebar() {
                         <span className="truncate">{item.label}</span>
                       )}
 
-                      {/* Tooltip saat collapsed */}
                       {isSidebarCollapsed && (
                         <div className="absolute left-full ml-2 z-50 hidden group-hover:flex">
                           <div className="bg-popover text-popover-foreground text-xs font-medium px-2 py-1 rounded-md shadow-md border border-border whitespace-nowrap">
@@ -143,7 +146,6 @@ export default function Sidebar() {
               })}
             </ul>
 
-            {/* Divider antar group */}
             {!isSidebarCollapsed && (
               <div className="mt-3 border-b border-border/50" />
             )}
@@ -155,7 +157,6 @@ export default function Sidebar() {
       <div className="flex-shrink-0 border-t border-border p-2">
         {!isSidebarCollapsed ? (
           <div className="flex items-center gap-2 rounded-lg px-2 py-2">
-            {/* Avatar */}
             <div className="w-7 h-7 rounded-full bg-navy-800 flex items-center justify-center flex-shrink-0">
               <span className="text-white text-xs font-semibold">
                 {user?.nama_lengkap?.[0]?.toUpperCase() ?? 'A'}
