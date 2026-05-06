@@ -1,8 +1,5 @@
 // src/api/dashboard.api.ts
-// ─────────────────────────────────────────────────────────────
-// API calls untuk halaman Dashboard admin.
-// Semua type definitions disertakan di sini agar Dashboard.tsx
-// tidak perlu import dari tempat lain.
+// Update Fase F.1: tambah type JadwalHariIniItem + field jadwal_hari_ini di DashboardStats
 // ─────────────────────────────────────────────────────────────
 
 import api from '@/api/axios'
@@ -10,17 +7,17 @@ import api from '@/api/axios'
 // ── Types ─────────────────────────────────────────────────────
 
 export interface GrafikHariItem {
-  tanggal    : string   // "24 Apr"
-  tanggal_iso: string   // "2026-04-24"
+  tanggal    : string
+  tanggal_iso: string
   hadir      : number
   absen      : number
 }
 
 export interface DistribusiStatusItem {
-  status: string        // "hadir" | "terlambat" | "absen" | "izin" | "sakit"
+  status: string
   jumlah: number
   persen: number
-  warna : string        // hex color
+  warna : string
 }
 
 export interface TopMkItem {
@@ -43,6 +40,30 @@ export interface SchedulerStatus {
   jobs   : SchedulerJob[]
 }
 
+// ── Fase F.1: Jadwal Hari Ini ─────────────────────────────────
+
+export interface JadwalHariIniItem {
+  kelas_id          : string
+  kode_kelas        : string
+  matakuliah_id     : string | null
+  kode_mk           : string
+  nama_mk           : string
+  dosen_id          : string | null
+  nama_dosen        : string | null
+  ruangan_id        : string | null
+  kode_ruangan      : string | null
+  nama_ruangan      : string | null
+  tipe_ruangan      : 'kuliah' | 'lab' | 'seminar' | 'lainnya' | null
+  slot_mulai        : number
+  slot_selesai      : number
+  jam_mulai         : string | null   // "07:00"
+  jam_selesai       : string | null   // "09:30"
+  jam_range         : string | null   // "07:00 – 09:30"
+  is_aktif_sekarang : boolean
+  ada_sesi_aktif    : boolean
+  izin_tamu         : boolean
+}
+
 export interface DashboardStats {
   total_mahasiswa          : number
   total_dosen              : number
@@ -54,23 +75,16 @@ export interface DashboardStats {
   distribusi_status        : DistribusiStatusItem[]
   top_mk_kehadiran_terendah: TopMkItem[]
   scheduler_status         : SchedulerStatus
+  jadwal_hari_ini          : JadwalHariIniItem[]   // ← Fase F.1
 }
 
 // ── API Functions ──────────────────────────────────────────────
 
-/**
- * Ambil semua data statistik untuk beranda admin.
- * Di-cache oleh React Query selama 30 detik.
- */
 export async function fetchDashboardStats(): Promise<DashboardStats> {
   const res = await api.get<DashboardStats>('/admin/dashboard')
   return res.data
 }
 
-/**
- * Ambil hanya jumlah sesi aktif — dipakai untuk polling setiap 10 detik.
- * Endpoint ringan karena hanya ambil satu field.
- */
 export async function fetchSesiAktifCount(): Promise<number> {
   const res = await api.get<DashboardStats>('/admin/dashboard')
   return res.data.total_sesi_aktif
