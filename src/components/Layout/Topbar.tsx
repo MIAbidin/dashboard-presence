@@ -1,5 +1,5 @@
 // src/components/Layout/Topbar.tsx
-// Update Fase D: tambah label '/program-studi' di PAGE_LABELS
+// Update Fase E: tambah label route Super Admin di PAGE_LABELS
 
 import { useLocation, Link } from 'react-router-dom'
 import { Moon, Sun, Bell, ChevronRight, User, LogOut, Settings } from 'lucide-react'
@@ -10,25 +10,30 @@ import { useAuthStore } from '@/stores/authStore'
 
 // ── Map path → label untuk breadcrumb ────────────────────────
 const PAGE_LABELS: Record<string, string> = {
-  '/dashboard':        'Dashboard',
-  '/mahasiswa':        'Mahasiswa',
-  '/dosen':            'Dosen',
-  '/matakuliah':       'Matakuliah',
-  '/ruangan':          'Ruangan Kuliah',
-  '/program-studi':    'Program Studi',       // ← Fase D
-  '/enrollment':       'Enrollment',
-  '/laporan':          'Laporan',
-  '/import':           'Import Data',
-  '/jadwal-pengganti': 'Jadwal Pengganti',
-  '/profil':           'Profil Saya',
-  '/scheduler':        'Scheduler',
-  '/audit':            'Audit Log',
+  '/dashboard':                  'Dashboard',
+  '/mahasiswa':                  'Mahasiswa',
+  '/dosen':                      'Dosen',
+  '/matakuliah':                 'Matakuliah',
+  '/ruangan':                    'Ruangan Kuliah',
+  '/program-studi':              'Program Studi',
+  '/enrollment':                 'Enrollment',
+  '/laporan':                    'Laporan',
+  '/import':                     'Import Data',
+  '/jadwal-pengganti':           'Jadwal Pengganti',
+  '/profil':                     'Profil Saya',
+  '/scheduler':                  'Scheduler',
+  '/audit':                      'Audit Log',
+  // Fase E — Super Admin
+  '/super-admin':                'Super Admin',
+  '/super-admin/admins':         'Kelola Admin',
+  '/super-admin/konfigurasi':    'Konfigurasi Sistem',
 }
 
 export default function Topbar() {
   const { isDarkMode, toggleDarkMode } = useUIStore()
   const { user, logout } = useAuthStore()
   const location = useLocation()
+  const isSuperAdmin = user?.role === 'super_admin'
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -52,6 +57,9 @@ export default function Topbar() {
     }
   })
 
+  const roleLabel = isSuperAdmin ? 'Super Admin' : 'Administrator'
+  const avatarBg = isSuperAdmin ? 'bg-violet-600' : 'bg-navy-800'
+
   return (
     <header className="h-14 flex-shrink-0 border-b border-border bg-card flex items-center px-4 gap-4">
       {/* ── Breadcrumb ──────────────────────────────────────── */}
@@ -60,7 +68,7 @@ export default function Topbar() {
           to="/dashboard"
           className="text-muted-foreground hover:text-foreground text-xs transition-colors shrink-0"
         >
-          Admin
+          {roleLabel}
         </Link>
 
         {breadcrumbs.map((crumb, i) => (
@@ -117,7 +125,7 @@ export default function Topbar() {
               isDropdownOpen && 'bg-accent'
             )}
           >
-            <div className="w-6 h-6 rounded-full bg-navy-800 flex items-center justify-center flex-shrink-0">
+            <div className={cn('w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0', avatarBg)}>
               <span className="text-white text-[10px] font-bold">
                 {user?.nama_lengkap?.[0]?.toUpperCase() ?? 'A'}
               </span>
@@ -126,7 +134,7 @@ export default function Topbar() {
               <p className="text-xs font-medium text-foreground leading-none truncate max-w-[120px]">
                 {user?.nama_lengkap ?? 'Admin'}
               </p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Administrator</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">{roleLabel}</p>
             </div>
           </button>
 
@@ -145,8 +153,13 @@ export default function Topbar() {
                 <p className="text-[11px] text-muted-foreground truncate mt-0.5">
                   {user?.email ?? ''}
                 </p>
-                <span className="mt-1.5 inline-flex items-center px-1.5 py-0.5 rounded-md bg-navy-800/10 text-navy-800 dark:text-navy-200 dark:bg-navy-800/30 text-[10px] font-semibold">
-                  Administrator
+                <span className={cn(
+                  'mt-1.5 inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-semibold',
+                  isSuperAdmin
+                    ? 'bg-violet-500/10 text-violet-700 dark:text-violet-300'
+                    : 'bg-navy-800/10 text-navy-800 dark:text-navy-200 dark:bg-navy-800/30'
+                )}>
+                  {roleLabel}
                 </span>
               </div>
 

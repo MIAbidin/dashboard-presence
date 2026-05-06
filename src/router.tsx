@@ -1,22 +1,28 @@
+// src/router.tsx
+// Update Fase E: tambah route /super-admin/admins dan /super-admin/konfigurasi
+
 import { lazy, Suspense } from 'react'
 import { createBrowserRouter, Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
 
 // ── Lazy-load semua halaman (code splitting otomatis) ─────────
-const LoginPage           = lazy(() => import('@/pages/Login'))
-const DashboardPage       = lazy(() => import('@/pages/Dashboard'))
-const MahasiswaPage       = lazy(() => import('@/pages/Mahasiswa'))
-const DosenPage           = lazy(() => import('@/pages/Dosen'))
-const MatakuliahPage      = lazy(() => import('@/pages/Matakuliah'))
-const EnrollmentPage      = lazy(() => import('@/pages/Enrollment'))
-const LaporanPage         = lazy(() => import('@/pages/Laporan'))
-const JadwalPenggantiPage = lazy(() => import('@/pages/JadwalPengganti'))
-const ImportPage          = lazy(() => import('@/pages/ImportData'))
-const ProfilPage          = lazy(() => import('@/pages/Profil'))
-const AuditPage           = lazy(() => import('@/pages/AuditLog'))
-const SchedulerPage       = lazy(() => import('@/pages/Scheduler'))
-const RuanganPage         = lazy(() => import('@/pages/Ruangan'))  // ← Fase A
-const ProgramStudiPage = lazy(() => import('@/pages/ProgramStudi'))
+const LoginPage              = lazy(() => import('@/pages/Login'))
+const DashboardPage          = lazy(() => import('@/pages/Dashboard'))
+const MahasiswaPage          = lazy(() => import('@/pages/Mahasiswa'))
+const DosenPage              = lazy(() => import('@/pages/Dosen'))
+const MatakuliahPage         = lazy(() => import('@/pages/Matakuliah'))
+const EnrollmentPage         = lazy(() => import('@/pages/Enrollment'))
+const LaporanPage            = lazy(() => import('@/pages/Laporan'))
+const JadwalPenggantiPage    = lazy(() => import('@/pages/JadwalPengganti'))
+const ImportPage             = lazy(() => import('@/pages/ImportData'))
+const ProfilPage             = lazy(() => import('@/pages/Profil'))
+const AuditPage              = lazy(() => import('@/pages/AuditLog'))
+const SchedulerPage          = lazy(() => import('@/pages/Scheduler'))
+const RuanganPage            = lazy(() => import('@/pages/Ruangan'))
+const ProgramStudiPage       = lazy(() => import('@/pages/ProgramStudi'))
+// Fase E — Super Admin pages
+const AdminManagementPage    = lazy(() => import('@/pages/SuperAdmin/AdminManagement'))
+const KonfigurasiPage        = lazy(() => import('@/pages/SuperAdmin/Konfigurasi'))
 
 // ── Layout utama (Sidebar + Topbar) ──────────────────────────
 const AppLayout = lazy(() => import('@/components/Layout/AppLayout'))
@@ -33,7 +39,7 @@ function PageLoader() {
   )
 }
 
-// ── Auth guard — redirect ke login jika belum login ───────────
+// ── Auth guard ────────────────────────────────────────────────
 function PrivateRoute() {
   const user = useAuthStore((s) => s.user)
   const accessToken = useAuthStore((s) => s.accessToken)
@@ -42,171 +48,83 @@ function PrivateRoute() {
   if (!user || !accessToken) {
     return <Navigate to="/login" state={{ from: location }} replace />
   }
-
   return <Outlet />
 }
 
-// ── Public guard — redirect ke dashboard jika sudah login ─────
+// ── Super Admin guard ─────────────────────────────────────────
+function SuperAdminRoute() {
+  const user = useAuthStore((s) => s.user)
+  const location = useLocation()
+
+  if (!user) return <Navigate to="/login" state={{ from: location }} replace />
+  if (user.role !== 'super_admin') return <Navigate to="/dashboard" replace />
+  return <Outlet />
+}
+
+// ── Public guard ──────────────────────────────────────────────
 function PublicOnlyRoute() {
   const user = useAuthStore((s) => s.user)
   const accessToken = useAuthStore((s) => s.accessToken)
 
-  if (user && accessToken) {
-    return <Navigate to="/dashboard" replace />
-  }
-
+  if (user && accessToken) return <Navigate to="/dashboard" replace />
   return <Outlet />
+}
+
+// ── Helper wrapper ────────────────────────────────────────────
+function Lazy({ component: C }: { component: React.LazyExoticComponent<React.ComponentType> }) {
+  return (
+    <Suspense fallback={<PageLoader />}>
+      <C />
+    </Suspense>
+  )
 }
 
 // ── Router definition ─────────────────────────────────────────
 export const router = createBrowserRouter([
-  // Public routes (login)
+  // Public routes
   {
-    element: (
-      <Suspense fallback={<PageLoader />}>
-        <PublicOnlyRoute />
-      </Suspense>
-    ),
+    element: <Suspense fallback={<PageLoader />}><PublicOnlyRoute /></Suspense>,
     children: [
-      {
-        path: '/login',
-        element: (
-          <Suspense fallback={<PageLoader />}>
-            <LoginPage />
-          </Suspense>
-        ),
-      },
+      { path: '/login', element: <Suspense fallback={<PageLoader />}><LoginPage /></Suspense> },
     ],
   },
 
-  // Protected routes (perlu login sebagai admin)
+  // Protected routes (semua admin)
   {
-    element: (
-      <Suspense fallback={<PageLoader />}>
-        <PrivateRoute />
-      </Suspense>
-    ),
+    element: <Suspense fallback={<PageLoader />}><PrivateRoute /></Suspense>,
     children: [
       {
-        element: (
-          <Suspense fallback={<PageLoader />}>
-            <AppLayout />
-          </Suspense>
-        ),
+        element: <Suspense fallback={<PageLoader />}><AppLayout /></Suspense>,
         children: [
+          { path: '/dashboard',        element: <Lazy component={DashboardPage} /> },
+          { path: '/audit',            element: <Lazy component={AuditPage} /> },
+          { path: '/scheduler',        element: <Lazy component={SchedulerPage} /> },
+          { path: '/mahasiswa',        element: <Lazy component={MahasiswaPage} /> },
+          { path: '/dosen',            element: <Lazy component={DosenPage} /> },
+          { path: '/matakuliah',       element: <Lazy component={MatakuliahPage} /> },
+          { path: '/ruangan',          element: <Lazy component={RuanganPage} /> },
+          { path: '/program-studi',    element: <Lazy component={ProgramStudiPage} /> },
+          { path: '/enrollment',       element: <Lazy component={EnrollmentPage} /> },
+          { path: '/laporan',          element: <Lazy component={LaporanPage} /> },
+          { path: '/jadwal-pengganti', element: <Lazy component={JadwalPenggantiPage} /> },
+          { path: '/import',           element: <Lazy component={ImportPage} /> },
+          { path: '/profil',           element: <Lazy component={ProfilPage} /> },
+
+          // ── Fase E: Super Admin only ─────────────────────
           {
-            path: '/dashboard',
-            element: (
-              <Suspense fallback={<PageLoader />}>
-                <DashboardPage />
-              </Suspense>
-            ),
-          },
-          {
-            path: '/audit',
-            element: (
-              <Suspense fallback={<PageLoader />}>
-                <AuditPage />
-              </Suspense>
-            ),
-          },
-          {
-            path: '/scheduler',
-            element: (
-              <Suspense fallback={<PageLoader />}>
-                <SchedulerPage />
-              </Suspense>
-            ),
-          },
-          {
-            path: '/mahasiswa',
-            element: (
-              <Suspense fallback={<PageLoader />}>
-                <MahasiswaPage />
-              </Suspense>
-            ),
-          },
-          {
-            path: '/dosen',
-            element: (
-              <Suspense fallback={<PageLoader />}>
-                <DosenPage />
-              </Suspense>
-            ),
-          },
-          {
-            path: '/matakuliah',
-            element: (
-              <Suspense fallback={<PageLoader />}>
-                <MatakuliahPage />
-              </Suspense>
-            ),
-          },
-          {
-            path: '/ruangan',  // ← Fase A
-            element: (
-              <Suspense fallback={<PageLoader />}>
-                <RuanganPage />
-              </Suspense>
-            ),
-          },
-          { path: '/program-studi',
-            element: (
-              <Suspense fallback={<PageLoader />}>
-                <ProgramStudiPage />
-              </Suspense>
-            ), 
-          },
-          {
-            path: '/enrollment',
-            element: (
-              <Suspense fallback={<PageLoader />}>
-                <EnrollmentPage />
-              </Suspense>
-            ),
-          },
-          {
-            path: '/laporan',
-            element: (
-              <Suspense fallback={<PageLoader />}>
-                <LaporanPage />
-              </Suspense>
-            ),
-          },
-          { 
-            path: '/jadwal-pengganti', 
-            element: (
-              <Suspense fallback={<PageLoader />}>
-                <JadwalPenggantiPage />
-              </Suspense>
-            ),
-          },
-          {
-            path: '/import',
-            element: (
-              <Suspense fallback={<PageLoader />}>
-                <ImportPage />
-              </Suspense>
-            ),
-          },
-          {
-            path: '/profil',
-            element: (
-              <Suspense fallback={<PageLoader />}>
-                <ProfilPage />
-              </Suspense>
-            ),
+            element: <SuperAdminRoute />,
+            children: [
+              { path: '/super-admin/admins',       element: <Lazy component={AdminManagementPage} /> },
+              { path: '/super-admin/konfigurasi',  element: <Lazy component={KonfigurasiPage} /> },
+            ],
           },
         ],
       },
     ],
   },
 
-  // Catch-all — redirect ke dashboard atau login
-  {
-    path: '/',
-    element: <Navigate to="/dashboard" replace />,
-  },
+  // Catch-all
+  { path: '/', element: <Navigate to="/dashboard" replace /> },
   {
     path: '*',
     element: (
